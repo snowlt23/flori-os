@@ -1,0 +1,97 @@
+
+import "core/prelude"
+import "core/macros"
+import "core/syntax"
+import "core/pointer"
+import "core/cstring"
+
+enum VGAColor {
+  VGA_COLOR_BLACK = 0
+  VGA_COLOR_BLUE
+  VGA_COLOR_GREEN
+  VGA_COLOR_CYAN
+  VGA_COLOR_RED
+  VGA_COLOR_MAGENTA
+  VGA_COLOR_BROWN
+  VGA_COLOR_LIGHT_GREY
+  VGA_COLOR_DARK_GREY
+  VGA_COLOR_LIGHT_BLUE
+  VGA_COLOR_LIGHT_GREEN
+  VGA_COLOR_LIGHT_CYAN
+  VGA_COLOR_LIGHT_RED
+  VGA_COLOR_LIGHT_MAGENTA
+  VGA_COLOR_LIGHT_BROWN
+  VGA_COLOR_WHITE
+}
+
+fn vga_entry_color(fg VGAColor, bg VGAColor) UInt8 {
+  cast[UInt8](or(int(fg), int(bg) << 4))
+}
+
+fn vga_entry(uc Char, color UInt8) UInt16 {
+  cast[UInt16](or(cast[Int](uc), cast[Int](color) << 8))
+}
+
+fn cs_length(cs CString) Int {
+  len := 0
+  while (cs!len != cast[Char](0)) {
+    len += 1
+  }
+  len
+}
+
+const VGA_WIDTH := 80
+const VGA_HEIGHT := 25
+
+var terminal_row Int
+var terminal_column Int
+var terminal_color UInt8
+
+var terminal_buffer Ptr[UInt16]
+
+fn terminal_initialize() {
+  terminal_row = int(0)
+  terminal_column = int(0)
+  terminal_color = vga_entry_color(VGA_COLOR_LIGHT_GREY, VGA_COLOR_BLACK)
+  terminal_buffer = cast[Ptr[UInt16]](753664)
+  for (y : range(0, VGA_HEIGHT-1)) {
+    for (x : range(0, VGA_WIDTH-1)) {
+      index := y*VGA_WIDTH + x
+      terminal_buffer!index = vga_entry(c" ", terminal_color)
+    }
+  }
+}
+
+fn terminal_setcolor(color UInt8) {
+  terminal_color = color;
+}
+fn terminal_putentryat(c Char, color UInt8, x Int, y Int) {
+  index := y*VGA_WIDTH + x
+  terminal_buffer!index = vga_entry(c, color)
+}
+fn terminal_putchar(c Char) {
+  terminal_putentryat(c, terminal_color, terminal_column, terminal_row)
+  terminal_column += 1
+  if (terminal_column == VGA_WIDTH) {
+    terminal_column = int(0)
+    terminal_row += 1
+    if (terminal_row == VGA_HEIGHT) {
+      terminal_row = int(0)
+    }
+  }
+}
+
+fn terminal_write(data CString, size Int) {
+  for (i : range(0, size-1)) {
+    terminal_putchar(data!i)
+  }
+}
+fn terminal_writestring(data CString) {
+  terminal_write(data, cs_length(data))
+}
+
+fn kernel_main() {
+  terminal_initialize()
+  terminal_writestring("Hello, VOICEROID World!\n")
+}
+kernel_main()

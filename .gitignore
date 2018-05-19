@@ -1,0 +1,9 @@
+
+.vagrant
+*.log
+
+floricache/
+boot.o
+kernel.o
+kernel.exe
+florios.bin
